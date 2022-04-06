@@ -65,8 +65,4 @@ export class OTLPTraceExporter
   getServiceClientType() {
     return ServiceClientType.SPANS;
   }
-
-  getServiceProtoPath(): string {
-    return 'opentelemetry/proto/collector/trace/v1/trace_service.proto';
-  }
 }

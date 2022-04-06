@@ -15,11 +15,10 @@
  */
 
 import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
 import { diag } from '@opentelemetry/api';
 import { globalErrorHandler, getEnv } from '@opentelemetry/core';
 import { otlpTypes } from '@opentelemetry/exporter-trace-otlp-http';
-import * as path from 'path';
+import * as packageDefinition from './generated/opentelemetry/proto/collector/trace/v1/trace_service_grpc_pb';
 import { OTLPExporterNodeBase } from './OTLPExporterNodeBase';
 import { URL } from 'url';
 import {
@@ -37,48 +36,36 @@ export function onInit<ExportItem, ServiceRequest>(
   const credentials: grpc.ChannelCredentials =
     config.credentials || grpc.credentials.createInsecure();
 
-  const includeDirs = [path.resolve(__dirname, '..', 'protos')];
+  try {
+    const packageObject: any = grpc.loadPackageDefinition(packageDefinition);
 
-  protoLoader
-    .load(collector.getServiceProtoPath(), {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-      includeDirs,
-    })
-    .then(packageDefinition => {
-      const packageObject: any = grpc.loadPackageDefinition(packageDefinition);
+    const options = { 'grpc.default_compression_algorithm': collector.compression }
 
-      const options = { 'grpc.default_compression_algorithm': collector.compression };
+    if (collector.getServiceClientType() === ServiceClientType.SPANS) {
+      collector.serviceClient =
+        new packageObject.opentelemetry.proto.collector.trace.v1.TraceService(
+          collector.url,
+          credentials,
+          options,
+        );
+    } else {
+      collector.serviceClient =
+        new packageObject.opentelemetry.proto.collector.metrics.v1.MetricsService(
+          collector.url,
+          credentials,
+          options,
+        );
+    }
 
-      if (collector.getServiceClientType() === ServiceClientType.SPANS) {
-        collector.serviceClient =
-          new packageObject.opentelemetry.proto.collector.trace.v1.TraceService(
-            collector.url,
-            credentials,
-            options,
-          );
-      } else {
-        collector.serviceClient =
-          new packageObject.opentelemetry.proto.collector.metrics.v1.MetricsService(
-            collector.url,
-            credentials,
-            options,
-          );
-      }
-
-      if (collector.grpcQueue.length > 0) {
-        const queue = collector.grpcQueue.splice(0);
-        queue.forEach((item: GRPCQueueItem<ExportItem>) => {
-          collector.send(item.objects, item.onSuccess, item.onError);
-        });
-      }
-    })
-    .catch(err => {
-      globalErrorHandler(err);
-    });
+    if (collector.grpcQueue.length > 0) {
+      const queue = collector.grpcQueue.splice(0);
+      queue.forEach((item: GRPCQueueItem<ExportItem>) => {
+        collector.send(item.objects, item.onSuccess, item.onError);
+      });
+    }
+  } catch (err) {
+    globalErrorHandler(err);
+  }
 }
 
 export function send<ExportItem, ServiceRequest>(

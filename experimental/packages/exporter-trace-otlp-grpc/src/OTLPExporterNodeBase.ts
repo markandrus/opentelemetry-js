@@ -117,6 +117,5 @@ export abstract class OTLPExporterNodeBase<
     }
   }
 
-  abstract getServiceProtoPath(): string;
   abstract getServiceClientType(): ServiceClientType;
 }
