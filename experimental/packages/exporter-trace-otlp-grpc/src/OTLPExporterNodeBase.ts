@@ -118,5 +118,9 @@ export abstract class OTLPExporterNodeBase<
   }
 
   abstract getServiceProtoPath(): string;
+
+  /**
+   * @deprecated
+   */
   abstract getServiceClientType(): ServiceClientType;
 }

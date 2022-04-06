@@ -25,7 +25,6 @@ import { URL } from 'url';
 import {
   OTLPExporterConfigNode,
   GRPCQueueItem,
-  ServiceClientType,
   CompressionAlgorithm
 } from './types';
 
@@ -53,21 +52,12 @@ export function onInit<ExportItem, ServiceRequest>(
 
       const options = { 'grpc.default_compression_algorithm': collector.compression };
 
-      if (collector.getServiceClientType() === ServiceClientType.SPANS) {
-        collector.serviceClient =
-          new packageObject.opentelemetry.proto.collector.trace.v1.TraceService(
-            collector.url,
-            credentials,
-            options,
-          );
-      } else {
-        collector.serviceClient =
-          new packageObject.opentelemetry.proto.collector.metrics.v1.MetricsService(
-            collector.url,
-            credentials,
-            options,
-          );
-      }
+      collector.serviceClient =
+        new packageObject.opentelemetry.proto.collector.trace.v1.TraceService(
+          collector.url,
+          credentials,
+          options,
+        );
 
       if (collector.grpcQueue.length > 0) {
         const queue = collector.grpcQueue.splice(0);
